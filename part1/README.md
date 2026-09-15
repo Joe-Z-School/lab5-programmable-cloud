@@ -115,19 +115,13 @@ Create the VM in the `us-west1-b` [zone](https://cloud.google.com/compute/docs/r
 
 ### Machine Type
 
-For your final program, use the `f1-micro` machine type if it is available for your project and region.
-
-The `f1-micro` is a very small machine and is intentionally used to keep the cost of the assignment low. It is also quite slow. While developing your program, you may want to use a larger machine type such as `e2-medium` so that the VM starts and installs the application more quickly.
+For your final program, use a cheap machine type, e.g. `f1-micro` or `e2` family.
 
 **Remember to delete larger or otherwise unnecessary VMs when you are finished with them.**
 
-Do not assume that a particular machine type is free in every circumstance. Google Cloud's free-tier eligibility and availability can change.
-
 ### Operating System
 
-Use the `ubuntu-2204-lts` image family from the `ubuntu-os-cloud` image project.
-
-Ubuntu 22.04 LTS is the **"Jammy Jellyfish"** release.
+Use an ubuntu image family, e.g. `ubuntu-2204-lts` or `ubuntu-2604-lts-arm` from the `ubuntu-os-cloud` image project.
 
 Using an image family means that you do not need to hard-code a particular image version. Google Cloud can select the current image associated with the family.
 
@@ -179,8 +173,6 @@ cd flask-tutorial
 sudo python3 setup.py install
 sudo pip3 install -e .
 ```
-
-> **Note:** The Flask tutorial repository is used by this course and may use an older Python packaging approach. If the installation commands above produce errors on a current Ubuntu image, check the `flask-tutorial` repository and the course instructions before changing the installation procedure.
 
 After installing the application, configure and initialize it:
 
