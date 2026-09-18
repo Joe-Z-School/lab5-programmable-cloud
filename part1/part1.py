@@ -8,14 +8,14 @@ from pprint import pprint
 import googleapiclient.discovery
 import google.auth
 import sys
-
+from google.cloud import compute_v1
 
 def list_instances(compute, project, zone):
     result = compute.instances().list(project=project, zone=zone).execute()
     return result['items'] if 'items' in result else None
 
 
-def create_instance(compute, project, zone, name, nodeType):
+def create_instance(compute, project, zone, name, nodeType, fwName):
     image_response = (
         compute.images()
         .getFromFamily(project="ubuntu-os-cloud", family="ubuntu-2204-lts")
@@ -32,6 +32,11 @@ def create_instance(compute, project, zone, name, nodeType):
     config = {
         "name": name,
         "machineType": machine_type,
+        "properties": {
+            "tags": {
+                "items": [f"{fwName}"]
+            }
+        },
         # Specify the boot disk and the image to use as a source.
         "disks": [
             {
@@ -61,7 +66,7 @@ def create_instance(compute, project, zone, name, nodeType):
             }
         ],
     }
-
+    
     return compute.instances().insert(project=project, zone=zone, body=config).execute()
 
 
@@ -83,19 +88,46 @@ def wait_for_operation(compute,project,zone,operation):
         time.sleep(1)
 
 
+def create_firewall_rule(compute, project, fwPort, fwName):
+    firewall_body = {
+        "name": fwName,
+        "network": "global/networks/default",
+        "priority": 100,
+        "allowed": [
+            {
+                "IPProtocol": "tcp",
+                "ports": [str(fwPort)],
+            }
+        ],
+        "source_ranges": ["0.0.0.0/0"],
+        "target_tags": [fwName]
+    }
+
+    try:
+        compute.firewalls().insert(project=project, body=firewall_body).execute()
+        print(f"Created firewall rule {fwName}")
+    except googleapiclient.errors.HttpError as exp:
+        if exp.resp.status == 409:
+            print(f"Firewall rule {fwName} already exists")
+
+
 credentials, project = google.auth.default()
 compute = googleapiclient.discovery.build('compute', 'v1', credentials=credentials)
 zone = "us-west1-b"
 fwPort = 5000
-fwName = 'allow-{}'.format(fwPort)
+fwName = f'allow-{fwPort}'
 instanceName = 'blog'
 nodeType = 'e2-micro'
 
 print("Creating instance.")
 
+# Create a firewall rule if not already existing
+create_firewall_rule(compute, project, fwPort, fwName)
+
 # Create and wait for instance creation
-operation = create_instance(compute, project, zone, instanceName, nodeType)
+operation = create_instance(compute, project, zone, instanceName, nodeType, fwName)
 wait_for_operation(compute, project, zone, operation["name"])
+
 
 # Print the instance
 try:
@@ -106,6 +138,3 @@ try:
 except googleapiclient.errors.HttpError as exp:
     print(f"Unable to locate instance {instanceName} to get the IP address")
     print(exp)
-
-#create_firewall_rule(service, project, fwPort, fwName)
-
