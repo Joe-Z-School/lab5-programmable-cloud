@@ -65,6 +65,14 @@ def create_instance(compute, project, zone, name, nodeType, fwName):
                 ],
             }
         ],
+        "metadata": {
+            "items": [
+                {
+                    "key": "startup-script",
+                    "value": startup_script,
+                }
+            ]
+        },
     }
     
     return compute.instances().insert(project=project, zone=zone, body=config).execute()
