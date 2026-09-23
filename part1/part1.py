@@ -121,7 +121,7 @@ def create_firewall_rule(compute, project, fwPort, fwName):
 
 credentials, project = google.auth.default()
 compute = googleapiclient.discovery.build('compute', 'v1', credentials=credentials)
-zone = "us-west1-b"
+zone = "us-central1-a"
 fwPort = 5000
 fwName = f'allow-{fwPort}'
 instanceName = 'blog'
