@@ -34,7 +34,7 @@ def create_instance(compute, project, zone, name, nodeType, fwName):
                 "items": [f"{fwName}"]
             }
         },
-        "disk": [
+        "disks": [
             {
                 "boot": True,
                 "autoDelete": True,
