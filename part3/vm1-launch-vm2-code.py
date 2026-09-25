@@ -1,26 +1,9 @@
 #!/usr/bin/env python3
 
-import argparse
 import os
 import time
-from pprint import pprint
-
 import google.auth
 from google.cloud import compute_v1
-
-# Step 1 is to launch a VM instance complete with the service credentials
-# Using the credentials, launch another instance that will host the Flask application
-
-
-def list_instances(compute, project, zone):
-    request = compute_v1.ListInstancesRequest(
-        project=project,
-        zone=zone,
-    )
-
-    instances = compute.list(request=request)
-
-    return list(instances)
 
 
 def wait_for_operation(operation):
@@ -53,21 +36,9 @@ def create_instance(compute, project, zone, name, nodeType, fwName):
     # Configure the machine type.
     machine_type = (f"zones/{zone}/machineTypes/{nodeType}")
 
-    # Read the files VM1 will need to use/pass to VM2
-    vm1_startup_script = open(
-        os.path.join(os.path.dirname(__file__), "vm1-startup-script.sh")
-    ).read()
-
-    vm1_launch_vm2_code = open(
-        os.path.join(os.path.dirname(__file__), "vm1-launch-vm2-code.py")
-    ).read()
-
-    vm2_startup_script = open(
-        os.path.join(os.path.dirname(__file__), "vm2-startup-script.sh")
-    ).read()
-
-    service_credentials = open(
-        os.path.join(os.path.dirname(__file__), "service-credentials.json")
+    # Read the startup script.
+    startup_script = open(
+        "/srv/vm2-startup-script.sh"
     ).read()
 
     # Configure the boot disk.
@@ -102,24 +73,8 @@ def create_instance(compute, project, zone, name, nodeType, fwName):
         items=[
             compute_v1.Items(
                 key="startup-script",
-                value=vm1_startup_script,
-            ),
-            compute_v1.Items(
-                key="vm1-launch-vm2-code",
-                value=vm1_launch_vm2_code,
-            ),
-            compute_v1.Items(
-                key="vm2-startup-script",
-                value=vm2_startup_script,
-            ),
-            compute_v1.Items(
-                key="service-credentials",
-                value=service_credentials,
-            ),
-            compute_v1.Items(
-                key="project",
-                value=project,
-            ),
+                value=startup_script,
+            )
         ]
     )
 
@@ -180,6 +135,7 @@ def create_firewall_rule(compute, project, fwPort, fwName):
             raise
 
 
+# Authenticate with Google Cloud.
 credentials, project = google.auth.default()
 
 # Create the Compute Engine clients.
@@ -189,11 +145,10 @@ firewalls_client = compute_v1.FirewallsClient()
 zone = "us-west1-b"
 fwPort = 5000
 fwName = f"allow-{fwPort}"
-instanceName = "part3-launcher"
+instanceName = "blog"
 nodeType = "e2-micro"
 
-
-print("Creating instance.")
+print("Creating VM2 instance.")
 
 # Create the firewall rule if it does not already exist.
 create_firewall_rule(firewalls_client,project,fwPort,fwName)
@@ -201,3 +156,36 @@ create_firewall_rule(firewalls_client,project,fwPort,fwName)
 # Create the VM and wait for creation to finish.
 operation = create_instance(instances_client,project,zone,instanceName,nodeType,fwName)
 wait_for_operation(operation)
+
+
+# Retrieve the instance so we can get its external IP address.
+try:
+    request = compute_v1.GetInstanceRequest(
+        project=project,
+        zone=zone,
+        instance=instanceName,
+    )
+
+    instance_response = instances_client.get(
+        request=request
+    )
+
+    if instance_response:
+        instance_ip = (
+            instance_response
+            .network_interfaces[0]
+            .access_configs[0]
+            .nat_i_p
+        )
+
+        print(
+            f"The blog is running at "
+            f"http://{instance_ip}:{fwPort}"
+        )
+
+except Exception as exp:
+    print(
+        f"Unable to locate instance "
+        f"{instanceName} to get the IP address"
+    )
+    print(exp)
