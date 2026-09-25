@@ -103,15 +103,12 @@ credentials, project = google.auth.default()
 # Create the Compute Engine client.
 compute = compute_v1.InstancesClient()
 
-# Assignment configuration.
+
 zone = "us-west1-b"
 nodeType = "e2-micro"
-
 fwPort = 5000
 fwName = f"allow-{fwPort}"
-
 snapshotName = "base-snapshot-blog"
-
 
 # Print the instances currently running.
 for instance in list_instances(compute,project,zone):
