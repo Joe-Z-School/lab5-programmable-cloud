@@ -63,6 +63,15 @@ def create_instance(
         items=[fwName]
     )
 
+    metadata = compute_v1.Metadata(
+        items=[
+            compute_v1.Items(
+                key="startup-script",
+                value=startup_script,
+            )
+        ]
+    )
+
     # Create the VM configuration.
     instance = compute_v1.Instance(
         name=name,
@@ -70,6 +79,7 @@ def create_instance(
         disks=[boot_disk],
         network_interfaces=[network_interface],
         tags=tags,
+        metadata=metadata,
     )
 
     # Create the request.
